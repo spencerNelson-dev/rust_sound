@@ -1,6 +1,7 @@
 use std::f32::consts::PI;
 use std::time::Duration;
-use rodio::{OutputStream, Source};
+use rodio::{OutputStream, Source, Sink};
+use rodio::source::{SineWave};
 
 struct WaveTableOcillator {
     sample_rate: u32,
@@ -81,6 +82,20 @@ impl Source for WaveTableOcillator {
 }
 
 fn main() {
+
+    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+    let sink = Sink::try_new(&stream_handle).unwrap();
+
+    let source = SineWave::new(1046.5).take_duration(Duration::from_secs_f32(2.0)).amplify(0.20).fade_in(Duration::from_secs_f32(1.0));
+    sink.append(source);
+    let source = SineWave::new(523.25).take_duration(Duration::from_secs_f32(2.0)).amplify(0.2);
+    sink.append(source.clone());
+
+    sink.sleep_until_end();
+
+    let _ = stream_handle.play_raw(source);
+
+
     println!("Hello, world!");
 
     //lowest is 3
@@ -88,10 +103,10 @@ fn main() {
     let mut wave_table: Vec<f32> = Vec::with_capacity(wave_table_size);
 
     for n in 0..wave_table_size {
-        wave_table.push(0.25 * (2.0 * PI * n as f32 / wave_table_size as f32).sin());
+        wave_table.push(0.2 * (2.0 * PI * n as f32 / wave_table_size as f32).sin());
     }
 
-
+    println!("{:?}", wave_table);
 
     let mut oscillator = WaveTableOcillator::new(44100,  wave_table.clone());
     oscillator.set_frequency(440.0);
@@ -103,8 +118,8 @@ fn main() {
 
     std::thread::sleep(Duration::from_secs(2));
 
-    //let mut oscillator = WaveTableOcillator::new(44100, wave_table);
-    oscillator.set_frequency(523.25);
+    let mut oscillator = WaveTableOcillator::new(44100, wave_table);
+    oscillator.set_frequency(880.0);
 
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();    
 
